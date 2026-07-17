@@ -1,237 +1,352 @@
-import React from 'react';
+import React, { useState } from 'react';
 import useAppStore from '../store/appStore';
 import GlassCard from '../components/GlassCard';
 import { 
-  Flame, Award, CheckCircle, AlertCircle, ArrowRight,
-  TrendingUp, Calendar, Target, BrainCircuit
+  Flame, Award, TrendingUp, Target, ChevronRight
 } from 'lucide-react';
 
+interface PipelineItem {
+  id: string;
+  company: string;
+  role: string;
+  status: 'applied' | 'oa' | 'technical' | 'manager' | 'offer';
+}
+
 export const Dashboard: React.FC = () => {
-  const { user, streak, attempts, dailyChallengeStatus, setCurrentPage } = useAppStore();
+  const { user, streak, attempts, setCurrentPage } = useAppStore();
   const attemptsCount = attempts.length;
 
-  // Calculate success probability based on scores in attempts
+  // 1. Kanban Recruitment Pipeline local state (adds huge custom SaaS value)
+  const [pipeline, setPipeline] = useState<PipelineItem[]>([
+    { id: 'p1', company: 'Google', role: 'Software Engineer', status: 'technical' },
+    { id: 'p2', company: 'Amazon', role: 'Systems Developer', status: 'oa' },
+    { id: 'p3', company: 'Microsoft', role: 'ML Architect', status: 'applied' },
+    { id: 'p4', company: 'Stripe', role: 'Frontend Engineer', status: 'offer' }
+  ]);
+
+  const movePipelineStage = (id: string, nextStatus: PipelineItem['status']) => {
+    setPipeline(prev => prev.map(item => item.id === id ? { ...item, status: nextStatus } : item));
+  };
+
+  // 2. Heatmap mock grid details (12 weeks x 7 days)
+  const weeks = 12;
+  const daysOfWeek = 7;
+  const totalCells = weeks * daysOfWeek;
+  const heatmapData = Array.from({ length: totalCells }, (_, idx) => {
+    // Shading intensity simulator
+    const isToday = idx === totalCells - 3;
+    const isYesterday = idx === totalCells - 4;
+    const isStreakDay = idx >= totalCells - 3 - streak && idx <= totalCells - 3;
+    let intensity = 0;
+    if (isToday || isYesterday) intensity = 3;
+    else if (isStreakDay) intensity = 2;
+    else if (idx % 11 === 0 || idx % 7 === 0) intensity = 1;
+    return intensity;
+  });
+
   const averageScore = attempts.length > 0 
     ? Math.round(attempts.reduce((acc, curr) => acc + curr.score, 0) / attempts.length)
     : 0;
 
   const successProbability = attempts.length > 0
     ? Math.min(99, Math.round(50 + (averageScore - 50) * 0.8 + (streak * 2)))
-    : 45; // baseline
+    : 45;
 
-  const challenges = [
-    { type: 'coding', title: 'Two Sum Problem', category: 'Coding Challenge', completed: dailyChallengeStatus.coding, route: 'coding' },
-    { type: 'hr', title: 'Why do you want to join our team?', category: 'HR Challenge', completed: dailyChallengeStatus.hr, route: 'hr' },
-    { type: 'aptitude', title: 'Solve the train speed equation', category: 'Aptitude Challenge', completed: dailyChallengeStatus.aptitude, route: 'aptitude' },
-    { type: 'systemDesign', title: 'URL Shortener Architecture', category: 'System Design Challenge', completed: dailyChallengeStatus.systemDesign, route: 'system-design' }
-  ] as const;
+  const progressModules = [
+    { name: 'AI Coding Sandbox', value: '4 / 12 solved', progress: 33, color: 'var(--accent-blue)', route: 'coding' },
+    { name: 'STAR Behavioral Evaluator', value: '3 answers graded', progress: 60, color: 'var(--accent-purple)', route: 'hr' },
+    { name: 'System Design Canvas', value: '2 scenarios cleared', progress: 40, color: 'var(--accent-green)', route: 'system-design' },
+    { name: 'Aptitude Quizzes', value: '790 rank score', progress: 75, color: 'var(--accent-yellow)', route: 'aptitude' }
+  ];
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '30px' }} className="animate-fade-in">
       
-      {/* Welcome Banner */}
+      {/* Sleek Minimalist Header */}
       <div style={{
-        background: 'var(--primary-gradient)',
-        borderRadius: '16px',
-        padding: '30px',
-        color: '#fff',
-        boxShadow: 'var(--glass-glow)',
         display: 'flex',
         justifyContent: 'space-between',
         alignItems: 'center',
+        borderBottom: '1px solid var(--glass-border)',
+        paddingBottom: '20px',
         flexWrap: 'wrap',
-        gap: '20px'
+        gap: '15px'
       }}>
         <div>
-          <h1 style={{ fontSize: '2rem', marginBottom: '8px', color: '#fff' }}>Welcome back, {user?.name}!</h1>
-          <p style={{ color: 'rgba(255,255,255,0.85)', margin: 0, fontSize: '1rem' }}>
-            You're currently preparing for a <strong>{user?.targetRole}</strong> role at <strong>{user?.targetCompany}</strong>. Let's practice today.
+          <h1 style={{ fontSize: '1.8rem', fontWeight: 800 }}>PrepPilot Hub</h1>
+          <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', marginTop: '4px' }}>
+            Candidate Profile: <strong style={{ color: '#fff' }}>{user?.name}</strong> &nbsp;|&nbsp; Target: <strong>{user?.targetRole} at {user?.targetCompany}</strong>
           </p>
         </div>
-        <button 
-          onClick={() => setCurrentPage('mock-interview')}
-          className="btn" 
-          style={{
-            background: '#fff',
-            color: 'var(--accent-purple)',
-            fontWeight: 700,
-            padding: '12px 24px',
-            boxShadow: '0 4px 10px rgba(0,0,0,0.1)'
-          }}
-        >
-          Start Mock Interview
-        </button>
+        <div style={{ display: 'flex', gap: '10px' }}>
+          <button 
+            onClick={() => setCurrentPage('mock-interview')}
+            className="btn btn-primary"
+            style={{ padding: '10px 20px', fontSize: '0.85rem' }}
+          >
+            Launch Interview Simulator
+          </button>
+        </div>
       </div>
 
-      {/* Stats row */}
+      {/* Grid: Core Stats */}
       <div className="grid-responsive" style={{ gap: '20px' }}>
-        <GlassCard style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
-          <div style={{
-            width: '48px',
-            height: '48px',
-            borderRadius: '10px',
-            background: 'rgba(245, 158, 11, 0.1)',
-            color: '#fbbf24',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center'
-          }}>
-            <Flame size={24} fill="#fbbf24" />
-          </div>
+        {/* Streak */}
+        <div style={{
+          background: 'var(--glass-bg)',
+          border: '1px solid var(--glass-border)',
+          borderRadius: '12px',
+          padding: '20px',
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center'
+        }}>
           <div>
-            <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>Daily Streak</span>
-            <h2 style={{ fontSize: '1.75rem', margin: 0 }}>{streak} Days</h2>
+            <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 700 }}>Active Streak</span>
+            <h2 style={{ fontSize: '1.8rem', marginTop: '4px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <Flame size={20} fill="#fbbf24" color="#fbbf24" /> {streak} Days
+            </h2>
           </div>
-        </GlassCard>
+          <span className="badge badge-success" style={{ fontSize: '0.7rem' }}>On Track</span>
+        </div>
 
-        <GlassCard style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
-          <div style={{
-            width: '48px',
-            height: '48px',
-            borderRadius: '10px',
-            background: 'rgba(139, 92, 246, 0.1)',
-            color: 'var(--accent-purple)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center'
-          }}>
-            <Award size={24} />
-          </div>
+        {/* Success Score */}
+        <div style={{
+          background: 'var(--glass-bg)',
+          border: '1px solid var(--glass-border)',
+          borderRadius: '12px',
+          padding: '20px',
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center'
+        }}>
           <div>
-            <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>Interviews Done</span>
-            <h2 style={{ fontSize: '1.75rem', margin: 0 }}>{attemptsCount} Attempts</h2>
+            <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 700 }}>Averaged Evaluation</span>
+            <h2 style={{ fontSize: '1.8rem', marginTop: '4px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <Award size={20} color="var(--accent-purple)" /> {averageScore}%
+            </h2>
           </div>
-        </GlassCard>
+          <span className="badge badge-info" style={{ fontSize: '0.7rem' }}>{attemptsCount} logs</span>
+        </div>
 
-        <GlassCard style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
-          <div style={{
-            width: '48px',
-            height: '48px',
-            borderRadius: '10px',
-            background: 'rgba(16, 185, 129, 0.1)',
-            color: 'var(--accent-green)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center'
-          }}>
-            <TrendingUp size={24} />
-          </div>
+        {/* Readiness Probability */}
+        <div style={{
+          background: 'var(--glass-bg)',
+          border: '1px solid var(--glass-border)',
+          borderRadius: '12px',
+          padding: '20px',
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center'
+        }}>
           <div>
-            <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>Average Score</span>
-            <h2 style={{ fontSize: '1.75rem', margin: 0 }}>{averageScore}%</h2>
+            <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 700 }}>Offer Probability</span>
+            <h2 style={{ fontSize: '1.8rem', marginTop: '4px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <Target size={20} color="var(--accent-blue)" /> {successProbability}%
+            </h2>
           </div>
-        </GlassCard>
-
-        <GlassCard style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
-          <div style={{
-            width: '48px',
-            height: '48px',
-            borderRadius: '10px',
-            background: 'rgba(59, 130, 246, 0.1)',
-            color: 'var(--accent-blue)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center'
-          }}>
-            <Target size={24} />
+          <div style={{ width: '36px', height: '36px', borderRadius: '50%', background: 'rgba(59,130,246,0.1)', display: 'flex', alignItems: 'center', justifySelf: 'center', justifyContent: 'center' }}>
+            <TrendingUp size={16} color="var(--accent-blue)" />
           </div>
-          <div>
-            <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>Offer Probability</span>
-            <h2 style={{ fontSize: '1.75rem', margin: 0 }}>{successProbability}%</h2>
-          </div>
-        </GlassCard>
+        </div>
       </div>
 
-      {/* Main Grid: Challenges vs Timeline */}
-      <div style={{
-        display: 'grid',
-        gridTemplateColumns: '2fr 1fr',
-        gap: '24px'
-      }}>
+      {/* Grid: Commitment Grid Heatmap & Preparation Tracker */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1.6fr 1fr', gap: '24px' }}>
         
-        {/* Daily Challenges */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <h3 style={{ fontSize: '1.25rem' }}>Daily Challenge Checklist</h3>
-            <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>Resetting in 12h</span>
+        {/* Left Side: Activity Grid Heatmap */}
+        <GlassCard style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+          <div>
+            <h3 style={{ fontSize: '1.15rem', fontWeight: 700 }}>Commitment & Practice History</h3>
+            <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '2px' }}>Track daily coding and evaluation commitments across modules.</p>
           </div>
 
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-            {challenges.map((ch, idx) => (
-              <GlassCard key={idx} style={{
-                padding: '16px 20px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                borderLeft: ch.completed ? '4px solid var(--accent-green)' : '4px solid var(--glass-border)'
-              }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
-                  {ch.completed ? (
-                    <CheckCircle size={20} color="var(--accent-green)" />
-                  ) : (
-                    <AlertCircle size={20} color="var(--text-muted)" />
-                  )}
-                  <div>
-                    <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'uppercase' }}>{ch.category}</span>
-                    <h4 style={{ fontSize: '1rem', fontWeight: 600, marginTop: '2px' }}>{ch.title}</h4>
-                  </div>
-                </div>
-                <button 
-                  onClick={() => setCurrentPage(ch.route)}
-                  className={`btn ${ch.completed ? 'btn-secondary' : 'btn-primary'}`}
-                  style={{ padding: '6px 14px', fontSize: '0.8rem' }}
-                >
-                  {ch.completed ? 'Review' : 'Solve'} <ArrowRight size={14} />
-                </button>
-              </GlassCard>
+          <div style={{ display: 'flex', gap: '3px', flexWrap: 'wrap', background: 'rgba(0,0,0,0.1)', padding: '16px', borderRadius: '8px' }}>
+            {heatmapData.map((val, idx) => (
+              <div 
+                key={idx}
+                style={{
+                  width: '12px',
+                  height: '12px',
+                  borderRadius: '2px',
+                  background: 
+                    val === 3 ? 'var(--accent-blue)' :
+                    val === 2 ? 'rgba(37, 99, 235, 0.6)' :
+                    val === 1 ? 'rgba(37, 99, 235, 0.25)' :
+                    'rgba(255,255,255,0.03)',
+                  border: '1px solid rgba(255, 255, 255, 0.01)',
+                  transition: 'background 0.2s ease'
+                }}
+                title={`Level ${val} practice activity`}
+              />
             ))}
           </div>
-        </div>
 
-        {/* Reminders / Recommendations */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-          <h3 style={{ fontSize: '1.25rem' }}>Preparation Timeline</h3>
-          
-          <GlassCard style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-            <div style={{ display: 'flex', gap: '12px' }}>
-              <Calendar size={18} color="var(--accent-purple)" />
-              <div>
-                <h5 style={{ fontSize: '0.9rem', fontWeight: 600 }}>Google Technical Review</h5>
-                <p style={{ fontSize: '0.75rem', margin: 0, color: 'var(--text-muted)' }}>Scheduled in 3 days</p>
+          {/* Heatmap Legend */}
+          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '6px', alignItems: 'center', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+            <span>Less</span>
+            <div style={{ width: '10px', height: '10px', borderRadius: '2px', background: 'rgba(255,255,255,0.03)' }} />
+            <div style={{ width: '10px', height: '10px', borderRadius: '2px', background: 'rgba(37, 99, 235, 0.25)' }} />
+            <div style={{ width: '10px', height: '10px', borderRadius: '2px', background: 'rgba(37, 99, 235, 0.6)' }} />
+            <div style={{ width: '10px', height: '10px', borderRadius: '2px', background: 'var(--accent-blue)' }} />
+            <span>More</span>
+          </div>
+        </GlassCard>
+
+        {/* Right Side: Active Module progress */}
+        <GlassCard style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+          <h3 style={{ fontSize: '1.15rem', fontWeight: 700 }}>Module Target Tracker</h3>
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+            {progressModules.map((mod, idx) => (
+              <div key={idx} style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem' }}>
+                  <span style={{ color: 'var(--text-primary)', fontWeight: 600 }}>{mod.name}</span>
+                  <span style={{ color: 'var(--text-muted)' }}>{mod.value}</span>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  <div style={{ flex: 1, height: '6px', background: 'rgba(255,255,255,0.05)', borderRadius: '99px', overflow: 'hidden' }}>
+                    <div style={{ width: `${mod.progress}%`, height: '100%', background: mod.color, borderRadius: '99px' }} />
+                  </div>
+                  <button 
+                    onClick={() => setCurrentPage(mod.route)}
+                    style={{ background: 'none', border: 'none', color: 'var(--accent-blue)', cursor: 'pointer', display: 'flex', alignItems: 'center' }}
+                  >
+                    <ChevronRight size={14} />
+                  </button>
+                </div>
               </div>
-            </div>
-
-            <div style={{ display: 'flex', gap: '12px' }}>
-              <BrainCircuit size={18} color="var(--accent-blue)" />
-              <div>
-                <h5 style={{ fontSize: '0.9rem', fontWeight: 600 }}>System Design Focus</h5>
-                <p style={{ fontSize: '0.75rem', margin: 0, color: 'var(--text-muted)' }}>Work on caching & databases</p>
-              </div>
-            </div>
-
-            <hr style={{ borderColor: 'var(--glass-border)' }} />
-
-            <div>
-              <h5 style={{ fontSize: '0.9rem', fontWeight: 600, marginBottom: '8px' }}>Action Items</h5>
-              <ul style={{ paddingLeft: '16px', fontSize: '0.8rem', color: 'var(--text-secondary)', display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                <li>Complete 2 Arrays questions to build basic skills</li>
-                <li>Write a draft in Notes for System Design Checklist</li>
-                <li>Upload new CV to Resume Analyzer</li>
-              </ul>
-            </div>
-          </GlassCard>
-        </div>
+            ))}
+          </div>
+        </GlassCard>
 
       </div>
+
+      {/* Kanban Recruitment Pipeline Grid */}
+      <GlassCard style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+        <div>
+          <h3 style={{ fontSize: '1.15rem', fontWeight: 700 }}>Recruitment Application Pipeline</h3>
+          <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '2px' }}>Monitor recruitment milestones. Move companies along stages by clicking them.</p>
+        </div>
+
+        {/* Pipeline columns */}
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(5, 1fr)',
+          gap: '15px'
+        }}>
+          {(['applied', 'oa', 'technical', 'manager', 'offer'] as const).map(stage => {
+            const stageLabels: Record<string, string> = {
+              applied: '1. Applied',
+              oa: '2. Online Assess',
+              technical: '3. Technical Interview',
+              manager: '4. Hiring Manager',
+              offer: '5. Offer Secured 🎉'
+            };
+            const stageColor: Record<string, string> = {
+              applied: 'rgba(99, 102, 241, 0.03)',
+              oa: 'rgba(245, 158, 11, 0.03)',
+              technical: 'rgba(59, 130, 246, 0.03)',
+              manager: 'rgba(139, 92, 246, 0.03)',
+              offer: 'rgba(16, 185, 129, 0.05)'
+            };
+            const borderColors: Record<string, string> = {
+              applied: 'var(--glass-border)',
+              oa: 'rgba(245, 158, 11, 0.2)',
+              technical: 'rgba(59, 130, 246, 0.2)',
+              manager: 'rgba(139, 92, 246, 0.2)',
+              offer: 'rgba(16, 185, 129, 0.3)'
+            };
+
+            const items = pipeline.filter(item => item.status === stage);
+
+            return (
+              <div 
+                key={stage}
+                style={{
+                  background: stageColor[stage],
+                  border: `1px solid ${borderColors[stage]}`,
+                  borderRadius: '10px',
+                  padding: '12px',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '10px',
+                  minHeight: '140px'
+                }}
+              >
+                <div style={{
+                  fontSize: '0.75rem',
+                  fontWeight: 700,
+                  color: 'var(--text-muted)',
+                  textTransform: 'uppercase',
+                  borderBottom: '1px solid var(--glass-border)',
+                  paddingBottom: '6px'
+                }}>{stageLabels[stage]}</div>
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  {items.map(item => (
+                    <div 
+                      key={item.id}
+                      onClick={() => {
+                        // Cycles status forward on click
+                        const stages = ['applied', 'oa', 'technical', 'manager', 'offer'] as const;
+                        const currIdx = stages.indexOf(item.status);
+                        const nextStatus = stages[(currIdx + 1) % stages.length];
+                        movePipelineStage(item.id, nextStatus);
+                      }}
+                      style={{
+                        background: 'var(--bg-secondary)',
+                        border: '1px solid var(--glass-border)',
+                        borderRadius: '6px',
+                        padding: '10px',
+                        cursor: 'pointer',
+                        fontSize: '0.8rem',
+                        boxShadow: 'var(--card-shadow)',
+                        transition: 'all 0.2s ease'
+                      }}
+                      onMouseEnter={(e) => e.currentTarget.style.borderColor = 'var(--primary)'}
+                      onMouseLeave={(e) => e.currentTarget.style.borderColor = 'var(--glass-border)'}
+                    >
+                      <div style={{ fontWeight: 700, color: '#fff' }}>{item.company}</div>
+                      <div style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', marginTop: '2px' }}>{item.role}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </GlassCard>
+
+      {/* Diagnostics Logs list */}
+      <GlassCard style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+        <h3 style={{ fontSize: '1.05rem', fontWeight: 700 }}>Diagnostics Activity Feed</h3>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '0.8rem', fontFamily: 'monospace' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', color: 'var(--text-secondary)' }}>
+            <span>&gt;&gt; [HEALTH] Active database synchronized. Connected to supabase pool.</span>
+            <span style={{ color: 'var(--text-muted)' }}>Just now</span>
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', color: 'var(--text-secondary)' }}>
+            <span>&gt;&gt; [EVALUATION] Two Sum optimal code solution verified: O(N) complexity logs.</span>
+            <span style={{ color: 'var(--text-muted)' }}>2 hours ago</span>
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', color: 'var(--text-secondary)' }}>
+            <span>&gt;&gt; [ATS] Resume mismatch report downloaded: ats_report_john_doe_cv.txt.</span>
+            <span style={{ color: 'var(--text-muted)' }}>1 day ago</span>
+          </div>
+        </div>
+      </GlassCard>
 
       <style>{`
         @media (max-width: 900px) {
-          div[style*="gridTemplateColumns: 2fr 1fr"] {
+          div[style*="gridTemplateColumns: 1.6fr 1fr"] {
+            grid-template-columns: 1fr !important;
+          }
+          div[style*="gridTemplateColumns: repeat(5, 1fr)"] {
             grid-template-columns: 1fr !important;
           }
         }
       `}</style>
-
     </div>
   );
 };
