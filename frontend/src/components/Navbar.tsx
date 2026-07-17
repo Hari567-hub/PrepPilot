@@ -37,7 +37,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onSearchOpen }) => {
       alignItems: 'center',
       justifyContent: 'space-between',
       padding: '16px 24px',
-      background: 'rgba(10, 9, 23, 0.45)',
+      background: 'var(--glass-bg)',
       backdropFilter: 'blur(10px)',
       borderBottom: '1px solid var(--glass-border)',
       position: 'sticky',

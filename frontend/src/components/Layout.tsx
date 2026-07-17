@@ -171,7 +171,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
         top: 0,
         left: 0,
         right: 0,
-        background: 'rgba(10, 9, 23, 0.85)',
+        background: 'var(--glass-bg)',
         backdropFilter: 'blur(20px)',
         borderBottom: '1px solid var(--glass-border)',
         zIndex: 50

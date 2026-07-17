@@ -10,7 +10,7 @@ export const GlassCard: React.FC<GlassCardProps> = ({ children, glow = false, st
     <div 
       className={`glass-card ${className}`}
       style={{
-        background: 'rgba(255, 255, 255, 0.02)',
+        background: 'var(--glass-bg)',
         backdropFilter: 'blur(12px)',
         border: '1px solid var(--glass-border)',
         borderRadius: '16px',
