@@ -3,6 +3,9 @@ import { persist } from 'zustand/middleware';
 import type { Flashcard } from '../utils/mockData';
 import { FLASHCARDS } from '../utils/mockData';
 
+const API_BASE = 'http://localhost:8000';
+const getUserId = (email: string) => email.replace(/[^a-zA-Z0-9]/g, '_');
+
 export interface User {
   email: string;
   name: string;
@@ -96,14 +99,45 @@ export const useAppStore = create<AppState>()(
         set({ isLoggedIn: true, user: dummyUser, currentPage: 'dashboard' });
         get().addNotification(`Welcome back, ${name}!`, 'success');
         get().checkAndUpdateStreak();
+
+        // Sync user to backend database
+        fetch(`${API_BASE}/users`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            id: getUserId(email),
+            email,
+            name,
+            experience_tier: 'Fresher',
+            target_role: 'Software Engineer',
+            target_company: 'Google',
+            skills: ['React', 'JavaScript', 'Python']
+          })
+        }).catch(e => console.warn('Backend server offline, using local storage mode.', e));
       },
       logout: () => {
         set({ isLoggedIn: false, user: null, currentPage: 'landing' });
       },
       updateProfile: (updated) => {
-        set((state) => ({
-          user: state.user ? { ...state.user, ...updated } : null
-        }));
+        set((state) => {
+          const nextUser = state.user ? { ...state.user, ...updated } : null;
+          if (nextUser) {
+            fetch(`${API_BASE}/users`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                id: getUserId(nextUser.email),
+                email: nextUser.email,
+                name: nextUser.name,
+                experience_tier: nextUser.experience,
+                target_role: nextUser.targetRole,
+                target_company: nextUser.targetCompany,
+                skills: nextUser.skills
+              })
+            }).catch(e => console.warn('Backend update failed:', e));
+          }
+          return { user: nextUser };
+        });
         get().addNotification('Profile updated successfully!', 'success');
       },
 
@@ -128,6 +162,23 @@ export const useAppStore = create<AppState>()(
           attempts: [newAttempt, ...state.attempts]
         }));
         get().checkAndUpdateStreak();
+
+        // Sync attempt log to backend database
+        const userObj = get().user;
+        if (userObj) {
+          fetch(`${API_BASE}/users/${getUserId(userObj.email)}/attempts`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              type: newAttempt.type,
+              company: newAttempt.company,
+              role: newAttempt.role,
+              score: newAttempt.score,
+              feedback: '',
+              better_answer: ''
+            })
+          }).catch(e => console.warn('Backend attempts sync failed:', e));
+        }
       },
 
       // Check and update streak method (called on activities)
@@ -192,16 +243,54 @@ export const useAppStore = create<AppState>()(
         set((state) => ({
           notes: [newNote, ...state.notes]
         }));
+
+        // Sync note creation to backend database
+        const userObj = get().user;
+        if (userObj) {
+          fetch(`${API_BASE}/users/${getUserId(userObj.email)}/notes`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              id: newNote.id,
+              title: newNote.title,
+              content: newNote.content,
+              folder: newNote.folder
+            })
+          }).catch(e => console.warn('Backend notes sync failed:', e));
+        }
       },
       updateNote: (id, content) => {
         set((state) => ({
           notes: state.notes.map(n => n.id === id ? { ...n, content, updatedAt: new Date().toISOString() } : n)
         }));
+
+        // Sync note update to backend database
+        const userObj = get().user;
+        const targetNote = get().notes.find(n => n.id === id);
+        if (userObj && targetNote) {
+          fetch(`${API_BASE}/users/${getUserId(userObj.email)}/notes/${id}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              title: targetNote.title,
+              content,
+              folder: targetNote.folder
+            })
+          }).catch(e => console.warn('Backend note update failed:', e));
+        }
       },
       deleteNote: (id) => {
         set((state) => ({
           notes: state.notes.filter(n => n.id !== id)
         }));
+
+        // Sync note deletion to backend database
+        const userObj = get().user;
+        if (userObj) {
+          fetch(`${API_BASE}/users/${getUserId(userObj.email)}/notes/${id}`, {
+            method: 'DELETE'
+          }).catch(e => console.warn('Backend note deletion failed:', e));
+        }
       },
       addFolder: (name) => {
         if (!get().folders.includes(name)) {

@@ -112,7 +112,29 @@ export const evaluateInterviewAnswer = async (
   userAnswer: string,
   category: string
 ): Promise<AIResult> => {
-  // Simulate network delay
+  // Try to evaluate using the FastAPI backend if running
+  try {
+    const response = await fetch('http://localhost:8000/evaluate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ question: _question, answer: userAnswer, category })
+    });
+    if (response.ok) {
+      const data = await response.json();
+      return {
+        score: data.score,
+        feedback: data.feedback,
+        betterAnswer: data.better_answer || data.betterAnswer || '',
+        confidenceRating: data.confidence_rating || data.confidenceRating || 80,
+        communicationRating: data.communication_rating || data.communicationRating || 8,
+        technicalRating: data.technical_rating || data.technicalRating || 8
+      };
+    }
+  } catch (e) {
+    console.warn('FastAPI backend offline, falling back to client-side simulator.');
+  }
+
+  // Simulate network delay for local mode
   await new Promise(resolve => setTimeout(resolve, 2000));
 
   const trimmed = userAnswer.trim();
