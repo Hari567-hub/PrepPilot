@@ -234,7 +234,8 @@ export const runAndReviewCode = async (
   let suggestions = 'Excellent solution! You used an optimal lookup mapping.';
   let testCases = [
     { input: '[2, 7, 11, 15], target = 9', expected: '[0, 1]', actual: '[0, 1]', passed: true },
-    { input: '[3, 2, 4], target = 6', expected: '[1, 2]', actual: '[1, 2]', passed: true }
+    { input: '[3, 2, 4], target = 6', expected: '[1, 2]', actual: '[1, 2]', passed: true },
+    { input: '[3, 3], target = 6 (hidden)', expected: '[0, 1]', actual: '[0, 1]', passed: true }
   ];
 
   if (questionId === 'dsa-1') {
@@ -253,6 +254,8 @@ export const runAndReviewCode = async (
       testCases[0].passed = false;
       testCases[1].actual = '[]';
       testCases[1].passed = false;
+      testCases[2].actual = '[]';
+      testCases[2].passed = false;
       suggestions = 'Make sure you are calculating the correct complement index and returning values properly.';
     }
   }

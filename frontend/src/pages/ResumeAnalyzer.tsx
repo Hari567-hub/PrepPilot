@@ -233,6 +233,39 @@ export const ResumeAnalyzer: React.FC = () => {
                   </ul>
                 </div>
               </div>
+              {/* Recruiter Perspective & Company Alignment */}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', borderTop: '1px solid var(--glass-border)', paddingTop: '20px' }}>
+                <div>
+                  <h4 style={{ fontSize: '0.95rem', fontWeight: 600, color: 'var(--accent-purple)', marginBottom: '8px' }}>Hiring Manager Review</h4>
+                  <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', lineHeight: '1.4' }}>
+                    {analysis.recruiterPerspective}
+                  </p>
+                </div>
+                <div>
+                  <h4 style={{ fontSize: '0.95rem', fontWeight: 600, color: 'var(--accent-blue)', marginBottom: '8px' }}>Dream Company Target Alignment</h4>
+                  <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', lineHeight: '1.4' }}>
+                    {analysis.companyFeedback}
+                  </p>
+                </div>
+              </div>
+
+              {/* Missing Skills list */}
+              <div style={{ borderTop: '1px solid var(--glass-border)', paddingTop: '20px' }}>
+                <h4 style={{ fontSize: '0.95rem', fontWeight: 600, marginBottom: '8px' }}>Missing Tech Stack & Skillsets</h4>
+                <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                  {analysis.missingSkills && analysis.missingSkills.map((sk: string, idx: number) => (
+                    <span key={idx} style={{
+                      background: 'rgba(244, 63, 94, 0.08)',
+                      border: '1px solid rgba(244, 63, 94, 0.2)',
+                      color: 'var(--accent-red)',
+                      padding: '4px 10px',
+                      borderRadius: '6px',
+                      fontSize: '0.75rem',
+                      fontWeight: 600
+                    }}>{sk}</span>
+                  ))}
+                </div>
+              </div>
 
             </GlassCard>
           ) : (

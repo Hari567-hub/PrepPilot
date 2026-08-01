@@ -99,7 +99,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
         </div>
 
         {/* Navigation list */}
-        <nav style={{ flex: 1, overflowY: 'auto', padding: '16px 12px' }}>
+        <nav aria-label="Main Navigation Menu" style={{ flex: 1, overflowY: 'auto', padding: '16px 12px' }}>
           <ul style={{ listStyle: 'none', display: 'flex', flexDirection: 'column', gap: '4px' }}>
             {menuItems.map((item) => {
               const Icon = item.icon;
@@ -108,6 +108,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
                 <li key={item.id}>
                   <button 
                     onClick={() => setCurrentPage(item.id)}
+                    aria-label={`Go to ${item.name}`}
                     style={{
                       display: 'flex',
                       alignItems: 'center',

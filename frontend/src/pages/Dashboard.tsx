@@ -13,7 +13,7 @@ interface PipelineItem {
 }
 
 export const Dashboard: React.FC = () => {
-  const { user, streak, attempts, notes, flashcards, setCurrentPage } = useAppStore();
+  const { user, streak, attempts, notes, flashcards, xp, level, achievements, weeklyGoal, setCurrentPage } = useAppStore();
   const attemptsCount = attempts.length;
 
   // 1. Kanban Recruitment Pipeline (Persisted in LocalStorage, completely user-managed)
@@ -194,6 +194,83 @@ export const Dashboard: React.FC = () => {
             <TrendingUp size={16} color="var(--accent-blue)" />
           </div>
         </div>
+      </div>
+
+      {/* Gamification Progress */}
+      <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '20px' }}>
+        <GlassCard style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div>
+              <h3 style={{ fontSize: '1.1rem', fontWeight: 700 }}>Level {level} Candidate</h3>
+              <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginTop: '2px' }}>Accumulated {xp} total XP points. Earn XP by completing tasks.</p>
+            </div>
+            <span style={{ fontSize: '0.9rem', fontWeight: 'bold', color: 'var(--accent-purple)' }}>{xp % 1000} / 1000 XP</span>
+          </div>
+          <div style={{ width: '100%', height: '10px', background: 'rgba(255,255,255,0.05)', borderRadius: '99px', overflow: 'hidden' }}>
+            <div style={{ width: `${(xp % 1000) / 10}%`, height: '100%', background: 'var(--primary-gradient)', borderRadius: '99px', transition: 'width 0.5s ease-in-out' }} />
+          </div>
+          
+          {/* Achievements showcase */}
+          <div style={{ marginTop: '10px' }}>
+            <h4 style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-secondary)', marginBottom: '10px', textTransform: 'uppercase' }}>Unlocked Badges ({achievements.length})</h4>
+            <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
+              {['First Flight', 'Elite Performer', 'Algorithmist', 'Knowledge Curator', 'Spaced Scholar', 'Goal Setter'].map(badge => {
+                const unlocked = achievements.includes(badge);
+                return (
+                  <div 
+                    key={badge}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '6px',
+                      padding: '6px 12px',
+                      borderRadius: '8px',
+                      border: '1px solid',
+                      borderColor: unlocked ? 'rgba(79, 70, 229, 0.3)' : 'var(--glass-border)',
+                      background: unlocked ? 'rgba(79, 70, 229, 0.08)' : 'rgba(255,255,255,0.01)',
+                      color: unlocked ? '#fff' : 'var(--text-muted)',
+                      fontSize: '0.8rem',
+                      fontWeight: 600,
+                      opacity: unlocked ? 1 : 0.5,
+                      transition: 'all 0.3s ease'
+                    }}
+                  >
+                    <span>{unlocked ? '🏆' : '🔒'}</span>
+                    <span>{badge}</span>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </GlassCard>
+
+        {/* Weekly Goal Progress */}
+        <GlassCard style={{ display: 'flex', flexDirection: 'column', gap: '15px', justifyContent: 'center', alignItems: 'center', textAlign: 'center' }}>
+          <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 700 }}>Weekly Target Progress</span>
+          <div style={{ position: 'relative', width: '100px', height: '100px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <svg style={{ transform: 'rotate(-90deg)', width: '100px', height: '100px' }}>
+              <circle cx="50" cy="50" r="40" stroke="rgba(255,255,255,0.04)" strokeWidth="8" fill="transparent" />
+              <circle 
+                cx="50" 
+                cy="50" 
+                r="40" 
+                stroke="var(--accent-blue)" 
+                strokeWidth="8" 
+                fill="transparent" 
+                strokeDasharray="251.2"
+                strokeDashoffset={251.2 - (251.2 * Math.min(weeklyGoal.current, weeklyGoal.target)) / weeklyGoal.target}
+                style={{ transition: 'stroke-dashoffset 0.5s ease' }}
+              />
+            </svg>
+            <div style={{ position: 'absolute', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+              <span style={{ fontSize: '1.25rem', fontWeight: 800 }}>{weeklyGoal.current} / {weeklyGoal.target}</span>
+              <span style={{ fontSize: '0.65rem', color: 'var(--text-muted)', textTransform: 'uppercase' }}>tasks</span>
+            </div>
+          </div>
+          <p style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
+            Complete mock interviews or coding to clear your weekly goal!
+          </p>
+        </GlassCard>
       </div>
 
       {/* Grid: Commitment Grid Heatmap & Preparation Tracker */}

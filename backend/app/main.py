@@ -1,5 +1,8 @@
-from fastapi import FastAPI, Depends, HTTPException, status
+import time
+from fastapi import FastAPI, Depends, HTTPException, status, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
+from starlette.middleware.base import BaseHTTPMiddleware
 from sqlalchemy.orm import Session
 from typing import List
 
@@ -23,6 +26,44 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# In-memory rate limiting database
+rate_limit_db = {}
+
+class RateLimitingMiddleware(BaseHTTPMiddleware):
+    async def dispatch(self, request: Request, call_next):
+        # Exempt health check from rate limiting
+        if request.url.path == "/health":
+            return await call_next(request)
+            
+        client_ip = request.client.host if request.client else "unknown"
+        current_time = time.time()
+        
+        if client_ip not in rate_limit_db:
+            rate_limit_db[client_ip] = []
+            
+        rate_limit_db[client_ip] = [t for t in rate_limit_db[client_ip] if current_time - t < 60]
+        
+        if len(rate_limit_db[client_ip]) >= 100:
+            return JSONResponse(
+                status_code=429,
+                content={"detail": "Too many requests. Please slow down."}
+            )
+            
+        rate_limit_db[client_ip].append(current_time)
+        return await call_next(request)
+
+class SecurityHeadersMiddleware(BaseHTTPMiddleware):
+    async def dispatch(self, request: Request, call_next):
+        response = await call_next(request)
+        response.headers["X-Frame-Options"] = "DENY"
+        response.headers["X-Content-Type-Options"] = "nosniff"
+        response.headers["X-XSS-Protection"] = "1; mode=block"
+        response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
+        return response
+
+app.add_middleware(RateLimitingMiddleware)
+app.add_middleware(SecurityHeadersMiddleware)
 
 ai_service = AIService()
 

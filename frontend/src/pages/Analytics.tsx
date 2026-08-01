@@ -2,7 +2,8 @@ import React from 'react';
 import useAppStore from '../store/appStore';
 import GlassCard from '../components/GlassCard';
 import { 
-  ResponsiveContainer, LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip 
+  ResponsiveContainer, LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
+  RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar
 } from 'recharts';
 import { BarChart3 } from 'lucide-react';
 
@@ -26,6 +27,15 @@ export const Analytics: React.FC = () => {
     return { name: cat, average: avg };
   });
 
+  // Competency metrics for RadarChart
+  const radarData = [
+    { subject: 'Coding', A: Math.max(30, Math.round(attempts.filter(a => a.type === 'Coding').reduce((acc, c) => acc + c.score, 0) / (attempts.filter(a => a.type === 'Coding').length || 1) || 60)), fullMark: 100 },
+    { subject: 'System Design', A: Math.max(30, Math.round(attempts.filter(a => a.type === 'System Design').reduce((acc, c) => acc + c.score, 0) / (attempts.filter(a => a.type === 'System Design').length || 1) || 50)), fullMark: 100 },
+    { subject: 'Behavioral', A: Math.max(30, Math.round(attempts.filter(a => a.type === 'Behavioral' || a.type === 'HR').reduce((acc, c) => acc + c.score, 0) / (attempts.filter(a => a.type === 'Behavioral' || a.type === 'HR').length || 1) || 65)), fullMark: 100 },
+    { subject: 'Communication', A: 75, fullMark: 100 },
+    { subject: 'Aptitude', A: Math.max(30, Math.round(attempts.filter(a => a.type === 'Mock').reduce((acc, c) => acc + c.score, 0) / (attempts.filter(a => a.type === 'Mock').length || 1) || 70)), fullMark: 100 }
+  ];
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '30px' }} className="animate-fade-in">
       <div>
@@ -42,8 +52,8 @@ export const Analytics: React.FC = () => {
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
           
-          {/* Charts Row */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: '24px' }}>
+          {/* Charts Grid */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '20px' }}>
             
             {/* Score History LineChart */}
             <GlassCard style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
@@ -64,9 +74,25 @@ export const Analytics: React.FC = () => {
               </div>
             </GlassCard>
 
+            {/* Competency Radar Chart */}
+            <GlassCard style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+              <h3 style={{ fontSize: '1.15rem' }}>Interview Skill Radar</h3>
+              <div style={{ width: '100%', height: '240px' }}>
+                <ResponsiveContainer width="100%" height="100%">
+                  <RadarChart cx="50%" cy="50%" outerRadius="75%" data={radarData}>
+                    <PolarGrid stroke="rgba(255,255,255,0.05)" />
+                    <PolarAngleAxis dataKey="subject" stroke="var(--text-muted)" style={{ fontSize: '0.7rem' }} />
+                    <PolarRadiusAxis angle={30} domain={[0, 100]} stroke="rgba(255,255,255,0.1)" />
+                    <Radar name="Candidate" dataKey="A" stroke="var(--accent-purple)" fill="var(--accent-purple)" fillOpacity={0.3} />
+                    <Tooltip contentStyle={{ background: 'var(--bg-secondary)', borderColor: 'var(--glass-border)', color: '#fff' }} />
+                  </RadarChart>
+                </ResponsiveContainer>
+              </div>
+            </GlassCard>
+
             {/* Score by Category BarChart */}
             <GlassCard style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-              <h3 style={{ fontSize: '1.15rem' }}>Performance by Interview Stage</h3>
+              <h3 style={{ fontSize: '1.15rem' }}>Performance by Domain</h3>
               <div style={{ width: '100%', height: '240px' }}>
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart data={barData}>

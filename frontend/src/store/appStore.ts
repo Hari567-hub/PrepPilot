@@ -78,6 +78,19 @@ export interface AppState {
   notifications: { id: string; message: string; type: 'info' | 'success' | 'warning' }[];
   addNotification: (message: string, type?: 'info' | 'success' | 'warning') => void;
   clearNotification: (id: string) => void;
+
+  // Gamification
+  xp: number;
+  level: number;
+  achievements: string[];
+  weeklyGoal: { target: number; current: number };
+  addXp: (amount: number) => void;
+  unlockAchievement: (id: string) => void;
+  setWeeklyGoalProgress: (amount: number) => void;
+
+  // Coding solved tracking
+  solvedProblems: Record<string, { code: string; language: string; solvedAt: string }>;
+  saveProblemProgress: (id: string, code: string, language: string) => void;
 }
 
 export const useAppStore = create<AppState>()(
@@ -179,6 +192,19 @@ export const useAppStore = create<AppState>()(
             })
           }).catch(e => console.warn('Backend attempts sync failed:', e));
         }
+
+        // Award XP and check achievements
+        get().addXp(150);
+        get().setWeeklyGoalProgress(1);
+        if (get().attempts.length === 1) {
+          get().unlockAchievement('First Flight');
+        }
+        if (newAttempt.score >= 90) {
+          get().unlockAchievement('Elite Performer');
+        }
+        if (newAttempt.type === 'Coding') {
+          get().unlockAchievement('Algorithmist');
+        }
       },
 
       // Check and update streak method (called on activities)
@@ -258,6 +284,12 @@ export const useAppStore = create<AppState>()(
             })
           }).catch(e => console.warn('Backend notes sync failed:', e));
         }
+
+        // Award XP and achievements
+        get().addXp(50);
+        if (get().notes.length >= 3) {
+          get().unlockAchievement('Knowledge Curator');
+        }
       },
       updateNote: (id, content) => {
         set((state) => ({
@@ -322,6 +354,9 @@ export const useAppStore = create<AppState>()(
               nextReviewDate: nextDate.toISOString()
             };
           });
+          // Award XP on flashcard review
+          get().addXp(30);
+          get().unlockAchievement('Spaced Scholar');
           return { flashcards: updatedCards };
         });
       },
@@ -355,6 +390,59 @@ export const useAppStore = create<AppState>()(
         set((state) => ({
           notifications: state.notifications.filter(n => n.id !== id)
         }));
+      },
+
+      // Gamification default state and methods
+      xp: 120,
+      level: 1,
+      achievements: [],
+      weeklyGoal: { target: 5, current: 0 },
+      addXp: (amount) => {
+        set((state) => {
+          const nextXp = state.xp + amount;
+          const nextLevel = Math.floor(nextXp / 1000) + 1;
+          const levelUp = nextLevel > state.level;
+          
+          if (levelUp) {
+            setTimeout(() => {
+              get().addNotification(`Congratulations! You leveled up to Level ${nextLevel}! 🎉`, 'success');
+            }, 100);
+          }
+          return { xp: nextXp, level: nextLevel };
+        });
+      },
+      unlockAchievement: (id) => {
+        if (get().achievements.includes(id)) return;
+        set((state) => ({
+          achievements: [...state.achievements, id]
+        }));
+        setTimeout(() => {
+          get().addNotification(`Milestone unlocked: ${id}! 🏆`, 'success');
+        }, 100);
+        get().addXp(200); // Reward for milestone
+      },
+      setWeeklyGoalProgress: (amount) => {
+        set((state) => ({
+          weeklyGoal: {
+            ...state.weeklyGoal,
+            current: Math.min(state.weeklyGoal.target, state.weeklyGoal.current + amount)
+          }
+        }));
+        if (get().weeklyGoal.current >= get().weeklyGoal.target) {
+          get().unlockAchievement('Goal Setter');
+        }
+      },
+
+      // Problem solved state and methods
+      solvedProblems: {},
+      saveProblemProgress: (id, code, language) => {
+        set((state) => ({
+          solvedProblems: {
+            ...state.solvedProblems,
+            [id]: { code, language, solvedAt: new Date().toISOString() }
+          }
+        }));
+        get().addXp(100);
       }
     }),
     {
@@ -367,7 +455,12 @@ export const useAppStore = create<AppState>()(
         lastActiveDate: state.lastActiveDate,
         notes: state.notes,
         folders: state.folders,
-        flashcards: state.flashcards
+        flashcards: state.flashcards,
+        xp: state.xp,
+        level: state.level,
+        achievements: state.achievements,
+        weeklyGoal: state.weeklyGoal,
+        solvedProblems: state.solvedProblems
       })
     }
   )

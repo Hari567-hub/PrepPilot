@@ -5,6 +5,9 @@ export interface ResumeAnalysis {
   grammarIssues: { issue: string; suggestion: string }[];
   formattingSuggestions: string[];
   improvementTips: string[];
+  recruiterPerspective: string;
+  companyFeedback: string;
+  missingSkills: string[];
 }
 
 export const analyzeResumePDF = async (
@@ -20,7 +23,7 @@ export const analyzeResumePDF = async (
     atsScore += 12;
   }
   if (fileName.endsWith('.pdf')) {
-    atsScore += 5; // Extra points for PDF formatting format
+    atsScore += 5; // Extra points for PDF formatting
   }
   atsScore = Math.min(95, atsScore);
 
@@ -32,6 +35,10 @@ export const analyzeResumePDF = async (
   };
 
   const missingKeywords = missingKeywordsMap[targetRole] || ['Docker', 'Cloud Architecture', 'TypeScript', 'Agile'];
+
+  const missingSkills = targetRole === 'Software Engineer' 
+    ? ['Go / Rust programming', 'GraphQL / gRPC architecture', 'Distributed caching (Redis/Memcached)']
+    : ['Data warehousing concepts', 'Statistical analysis models', 'ETL pipelines setup'];
 
   const grammarIssues = [
     { issue: 'Passive voice: "Project was finished on time..."', suggestion: 'Change to active voice: "Led project execution and delivered on schedule."' },
@@ -49,6 +56,14 @@ export const analyzeResumePDF = async (
     'Quantify accomplishments: Replace "Improved app speed" with "Optimized backend algorithms to reduce latency by 35%".',
     'Include a dedicated Skills section grouped by technology (Languages, Frameworks, Tools).'
   ];
+
+  const recruiterPerspective = `
+  The candidate shows a solid academic foundation in computer science and initial developer experience. However, the resume layout is overly description-heavy. Hiring managers at major tech companies look for business impact (e.g. latency reductions, dollars saved, user engagement boosts) rather than listing general responsibilities. Standardizing action verbs will instantly elevate readability.
+  `;
+
+  const companyFeedback = `
+  For top tier companies, this resume needs a significant boost in infrastructure ownership. Specifically, highlight experiences using containerization platforms (Docker/K8s) and cloud integrations. There is also a lack of system architecture depth—mentioning how data consistency or service boundaries were managed would align better with their standard hiring bar.
+  `;
 
   const extractedText = `
   John Doe
@@ -74,7 +89,10 @@ export const analyzeResumePDF = async (
     missingKeywords,
     grammarIssues,
     formattingSuggestions,
-    improvementTips
+    improvementTips,
+    recruiterPerspective,
+    companyFeedback,
+    missingSkills
   };
 };
 
@@ -107,6 +125,16 @@ ${analysis.formattingSuggestions.map(f => `- ${f}`).join('\n')}
 4. RE-STRUCTURING ACTION PLAN
 --------------------------------------------------
 ${analysis.improvementTips.map(i => `- ${i}`).join('\n')}
+
+--------------------------------------------------
+5. RECRUITER PERSPECTIVE & INSIGHTS
+--------------------------------------------------
+${analysis.recruiterPerspective.trim()}
+
+--------------------------------------------------
+6. COMPANY SPECIFIC ALIGNMENT FEEDBACK
+--------------------------------------------------
+${analysis.companyFeedback.trim()}
 
 Report compiled by InterviewPrep AI on ${new Date().toLocaleDateString()}.
 ==================================================

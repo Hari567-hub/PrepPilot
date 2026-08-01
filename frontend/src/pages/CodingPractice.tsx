@@ -12,16 +12,35 @@ const codeDefaults: Record<string, string> = {
   java: `class Solution {\n    public int[] twoSum(int[] nums, int target) {\n        // Write solution here\n    }\n}`
 };
 
+const dsaHints = [
+  "Think about a single pass approach. How can we look up previously visited elements in O(1) time?",
+  "Calculate the complement (target - nums[i]). If it exists in your Map/dict, you have found the target indices.",
+  "Single loop: loop through nums. If (target - num) is in seen, return [seen[target - num], i]. Otherwise, seen[num] = i."
+];
+
 export const CodingPractice: React.FC = () => {
-  const { addAttempt, addNotification, completeDailyChallenge } = useAppStore();
+  const { addAttempt, addNotification, completeDailyChallenge, solvedProblems, saveProblemProgress } = useAppStore();
   
   const [language, setLanguage] = useState('python');
+  const [theme, setTheme] = useState('vs-dark');
   const [code, setCode] = useState(codeDefaults.python);
   const [timerSeconds, setTimerSeconds] = useState(1800); // 30 mins
   const [timerActive] = useState(true);
   const [isRunning, setIsRunning] = useState(false);
   const [consoleOutput, setConsoleOutput] = useState<string>('Console idle. Write code and hit "Run Code"');
   const [reviewResult, setReviewResult] = useState<any | null>(null);
+  const [hintIndex, setHintIndex] = useState(-1);
+
+  // Restore cached solved progress on mount / language toggle
+  useEffect(() => {
+    const saved = solvedProblems['dsa-1'];
+    if (saved && saved.language === language) {
+      setCode(saved.code);
+      setConsoleOutput('Restored previously saved solution code. All test cases passed.');
+    } else {
+      setCode(codeDefaults[language]);
+    }
+  }, [language]);
 
   // Timer hook
   useEffect(() => {
@@ -69,6 +88,7 @@ export const CodingPractice: React.FC = () => {
       setReviewResult(res);
 
       if (res.status === 'Accepted') {
+        saveProblemProgress('dsa-1', code, language);
         addAttempt({
           company: 'Google',
           role: 'Software Engineer',
@@ -112,6 +132,17 @@ export const CodingPractice: React.FC = () => {
             <Clock size={16} color="var(--accent-purple)" />
             <span>{formatTime(timerSeconds)}</span>
           </div>
+
+          <select 
+            className="glass-select" 
+            style={{ width: '120px', padding: '8px 12px' }}
+            value={theme}
+            onChange={(e) => setTheme(e.target.value)}
+          >
+            <option value="vs-dark">Dark Theme</option>
+            <option value="vs">Light Theme</option>
+            <option value="hc-black">High Contrast</option>
+          </select>
 
           <select 
             className="glass-select" 
@@ -169,6 +200,47 @@ export const CodingPractice: React.FC = () => {
                 <li>Only one valid answer exists.</li>
               </ul>
             </div>
+
+            {/* AI Hint Sequencer */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginTop: '10px', borderTop: '1px solid var(--glass-border)', paddingTop: '15px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-secondary)' }}>AI Hint System</span>
+                <button 
+                  className="btn btn-secondary"
+                  style={{ padding: '4px 10px', fontSize: '0.75rem' }}
+                  onClick={() => setHintIndex(prev => Math.min(2, prev + 1))}
+                  disabled={hintIndex >= 2}
+                >
+                  Request Next Hint
+                </button>
+              </div>
+              {hintIndex >= 0 && (
+                <div style={{
+                  background: 'rgba(59,130,246,0.06)',
+                  border: '1px solid rgba(59,130,246,0.15)',
+                  padding: '12px',
+                  borderRadius: '8px',
+                  fontSize: '0.8rem',
+                  color: 'var(--text-secondary)',
+                  lineHeight: '1.4'
+                }}>
+                  {dsaHints.slice(0, hintIndex + 1).map((h, i) => (
+                    <div key={i} style={{ marginBottom: i < hintIndex ? '8px' : '0' }}>
+                      <strong>Hint {i + 1}:</strong> {h}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Similar Interview Questions */}
+            <div style={{ marginTop: '10px', borderTop: '1px solid var(--glass-border)', paddingTop: '15px' }}>
+              <span style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-secondary)', display: 'block', marginBottom: '8px' }}>Similar Interview Questions</span>
+              <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                <span className="badge badge-info" style={{ fontSize: '0.7rem' }}>Contains Duplicate (Easy)</span>
+                <span className="badge badge-info" style={{ fontSize: '0.7rem' }}>Best Time to Buy and Sell Stock (Easy)</span>
+              </div>
+            </div>
           </GlassCard>
 
           {/* Console / Output */}
@@ -221,12 +293,12 @@ export const CodingPractice: React.FC = () => {
             </div>
 
             {/* Monaco Editor Wrapper */}
-            <div style={{ padding: '10px', background: '#1e1e1e' }}>
+            <div style={{ padding: '10px', background: theme === 'vs' ? '#f5f5f5' : '#1e1e1e' }}>
               <Editor
                 height="320px"
                 language={language}
                 value={code}
-                theme="vs-dark"
+                theme={theme}
                 onChange={(val) => setCode(val || '')}
                 options={{
                   minimap: { enabled: false },
